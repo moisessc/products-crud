@@ -3,8 +3,12 @@ package bootstrap
 import (
 	"net/http"
 
+	pv "github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"products-crud/internal/controller"
+	"products-crud/pkg/validator"
 )
 
 const (
@@ -15,17 +19,16 @@ const (
 )
 
 // newEchoRouter builds an instance of the echo router
-func newEchoRouter() http.Handler {
+func newEchoRouter(ph *controller.ProductsHandler) http.Handler {
 	e := echo.New()
+	e.Validator = validator.New(pv.New())
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format:           logsFormat,
 		CustomTimeFormat: timeFormat,
 	}))
 
 	products := e.Group("/api/v1/products")
-	products.GET("", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "Hello world")
-	})
+	products.POST("", ph.Create)
 
 	return e
 }
