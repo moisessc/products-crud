@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	"products-crud/database"
+	"products-crud/internal/controller"
+	"products-crud/internal/repository"
+	"products-crud/internal/service"
 	"products-crud/pkg/env"
 )
 
@@ -17,7 +20,12 @@ func Run() error {
 	}
 	defer db.Close()
 
-	router := newEchoRouter()
+	productsRepository := repository.NewPqProductRepository(db)
+	productsService := service.NewProductService(productsRepository)
+	productsRouter := controller.NewProductsHandler(productsService)
+
+	router := newEchoRouter(productsRouter)
+
 	srv := newServer(appEnv.Server, router)
 
 	err = srv.up()
