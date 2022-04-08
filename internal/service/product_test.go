@@ -65,3 +65,70 @@ func TestCreateProductService(t *testing.T) {
 		})
 	}
 }
+
+func TestGetProductsService(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			err      error
+			products []*model.ProductEntity
+		}
+		ctx              context.Context
+		responseExpected []*model.ProductResponse
+		errorExpected    error
+	}{
+		"could_not_get_products": {
+			mockReturn: struct {
+				err      error
+				products []*model.ProductEntity
+			}{
+				err:      errors.ErrFailedToRetrieveProducts,
+				products: nil,
+			},
+			ctx:           context.Background(),
+			errorExpected: fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProducts),
+		},
+		"get_products_success": {
+			mockReturn: struct {
+				err      error
+				products []*model.ProductEntity
+			}{
+				err: nil,
+				products: []*model.ProductEntity{
+					model.NewProductEntity(1, 1, 1, 23, "Macbook Air 2021", 1300.21, false),
+				},
+			},
+			ctx: context.Background(),
+			responseExpected: []*model.ProductResponse{
+				{
+					Id:           1,
+					SupplierId:   1,
+					CategoryId:   1,
+					Stock:        23,
+					Name:         "Macbook Air 2021",
+					Price:        1300.21,
+					Discontinued: false,
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mockRepository := mocks.ProductRepository{}
+			mockRepository.On(
+				"GetAll",
+				mock.AnythingOfType("*context.emptyCtx"),
+			).Return(tc.mockReturn.products, tc.mockReturn.err)
+
+			service := NewProductService(&mockRepository)
+			got, err := service.GetProducts(tc.ctx)
+
+			if tc.errorExpected != nil {
+				assert.EqualError(t, err, tc.errorExpected.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.responseExpected, got)
+			}
+		})
+	}
+}

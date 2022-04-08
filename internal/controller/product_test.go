@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"products-crud/internal/model"
 	"products-crud/internal/service/mocks"
 	"products-crud/pkg/errors"
 	"products-crud/pkg/validator"
@@ -126,6 +127,101 @@ func TestCreateProductController(t *testing.T) {
 				err = json.NewDecoder(w.Body).Decode(&gotBody)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.bodyExpected, gotBody)
+			}
+		})
+	}
+}
+
+func TestGetProductsController(t *testing.T) {
+	products := []*model.ProductResponse{
+		{
+			Id:           1,
+			Name:         "Macbook 2021",
+			SupplierId:   1,
+			CategoryId:   1,
+			Stock:        12,
+			Price:        2400.32,
+			Discontinued: false,
+		},
+	}
+	testCases := map[string]struct {
+		mockReturn struct {
+			err      error
+			products []*model.ProductResponse
+		}
+		request            request
+		bodyExpected       interface{}
+		statusCodeExpected int
+	}{
+		"could_not_get_products": {
+			mockReturn: struct {
+				err      error
+				products []*model.ProductResponse
+			}{
+				err:      fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProducts),
+				products: nil,
+			},
+			bodyExpected: errors.ApiResponse{
+				Message: "failed getting: products could not be retrieved",
+				Code:    "INTERNAL_SERVER_ERROR",
+			},
+			statusCodeExpected: http.StatusInternalServerError,
+		},
+		"get_products_success": {
+			mockReturn: struct {
+				err      error
+				products []*model.ProductResponse
+			}{
+				err:      nil,
+				products: products,
+			},
+			bodyExpected: []*model.ProductResponse{
+				{
+					Id:           1,
+					Name:         "Macbook 2021",
+					SupplierId:   1,
+					CategoryId:   1,
+					Stock:        12,
+					Price:        2400.32,
+					Discontinued: false,
+				},
+			},
+			statusCodeExpected: http.StatusOK,
+		},
+	}
+
+	e := echo.New()
+	e.Validator = validator.New(pv.New())
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(tc.request.body))
+			r.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			w := httptest.NewRecorder()
+			ctx := e.NewContext(r, w)
+
+			mockService := mocks.ProductService{}
+			mockService.On(
+				"GetProducts",
+				mock.AnythingOfType("*context.emptyCtx"),
+			).Return(tc.mockReturn.products, tc.mockReturn.err)
+
+			handler := NewProductsHandler(&mockService)
+			err := handler.GetAll(ctx)
+			assert.NoError(t, err)
+
+			gotStatusCode := w.Code
+			assert.EqualValues(t, tc.statusCodeExpected, gotStatusCode)
+
+			if name != "get_products_success" {
+				var gotBody errors.ApiResponse
+				err = json.NewDecoder(w.Body).Decode(&gotBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.bodyExpected, gotBody)
+			} else {
+				var gotBody []*model.ProductResponse
+				err = json.NewDecoder(w.Body).Decode(&gotBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.bodyExpected, gotBody)
 			}
 		})
 	}
