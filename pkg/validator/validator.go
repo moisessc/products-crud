@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
@@ -35,8 +36,9 @@ func (vh *validatorHandler) Validate(i interface{}) error {
 // RetrieveValidationErrorMessage retrieves a custom error message when the validaton fails
 func RetrieveValidationErrorMessage(err error) string {
 	fields := make([]string, 0, 5)
-	if err, ok := err.(validator.ValidationErrors); ok {
-		for _, v := range err {
+	var validatorErr validator.ValidationErrors
+	if errors.As(err, &validatorErr) {
+		for _, v := range validatorErr {
 			fields = append(fields, fmt.Sprint(productFields[v.Field()], ","))
 		}
 		lastField := fields[len(fields)-1]

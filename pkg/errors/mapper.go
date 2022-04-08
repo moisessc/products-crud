@@ -2,10 +2,9 @@ package errors
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/labstack/echo/v4"
 
 	"products-crud/pkg/validator"
 )
@@ -54,14 +53,13 @@ func MapError(err error, errType ErrorType) *ApiResponse {
 // retrieveUnmarshalErrorInformation retrieves the information when the bind method fails
 func retrieveUnmarshalErrorMessage(err error) string {
 	var field, expected, got string
-	if err, ok := err.(*echo.HTTPError); ok {
-		ierr := err.Internal
-		if ute, ok := ierr.(*json.UnmarshalTypeError); ok {
-			field = ute.Field
-			expected = ute.Type.Name()
-			got = ute.Value
-		}
+	var jsErr *json.UnmarshalTypeError
+	if errors.As(err, &jsErr) {
+		field = jsErr.Field
+		expected = jsErr.Type.Name()
+		got = jsErr.Value
 	}
+
 	if strings.Contains(expected, "int") || strings.Contains(expected, "float") {
 		expected = "number"
 	}

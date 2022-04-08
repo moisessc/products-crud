@@ -12,6 +12,8 @@ import (
 type ProductService interface {
 	// CreateProduct usecase to create a new product
 	CreateProduct(ctx context.Context, product *model.Product) error
+	// GetProducts usecase to retrieve all the products
+	GetProducts(ctx context.Context) ([]*model.ProductResponse, error)
 }
 
 // productService struct that implement the ProductService interface
@@ -33,4 +35,18 @@ func (ps *productService) CreateProduct(ctx context.Context, product *model.Prod
 		return fmt.Errorf("persistence failed: %w", err)
 	}
 	return nil
+}
+
+// GetProducts implement the interface ProductService.GetProducts
+func (ps *productService) GetProducts(ctx context.Context) ([]*model.ProductResponse, error) {
+	products, err := ps.repository.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed getting: %w", err)
+	}
+
+	pr := make([]*model.ProductResponse, 0)
+	for _, v := range products {
+		pr = append(pr, v.ToProduct().ToProductResponse())
+	}
+	return pr, nil
 }

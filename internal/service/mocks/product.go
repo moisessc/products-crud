@@ -27,3 +27,26 @@ func (_m *ProductService) CreateProduct(ctx context.Context, product *model.Prod
 
 	return r0
 }
+
+// GetProducts provides a mock function with given fields: ctx
+func (_m *ProductService) GetProducts(ctx context.Context) ([]*model.ProductResponse, error) {
+	ret := _m.Called(ctx)
+
+	var r0 []*model.ProductResponse
+	if rf, ok := ret.Get(0).(func(context.Context) []*model.ProductResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.ProductResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
