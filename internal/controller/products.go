@@ -54,3 +54,14 @@ func (ph *ProductsHandler) Create(c echo.Context) error {
 
 	return c.NoContent(http.StatusNoContent)
 }
+
+// GetAll invokes the echo handler to retrieve all the products
+func (ph *ProductsHandler) GetAll(c echo.Context) error {
+	products, err := ph.service.GetProducts(c.Request().Context())
+	if err != nil {
+		errResponse := errors.MapError(err, errors.DomainErr)
+		return c.JSON(http.StatusInternalServerError, errResponse)
+	}
+
+	return c.JSON(http.StatusOK, products)
+}
