@@ -49,7 +49,7 @@ func (pr *pqProductRepository) Save(ctx context.Context, pe *model.ProductEntity
 	_, err = stmt.ExecContext(
 		ctx, pe.Name(), pe.SupplierId(), pe.CategoryId(), pe.Stock(), pe.Price(), pe.Discontinued())
 	if err != nil {
-		log.Printf("could not insert room: %v", err)
+		log.Printf("could not insert products: %v", err)
 		return errors.ErrFailedToSaveProduct
 	}
 
