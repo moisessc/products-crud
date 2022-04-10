@@ -14,6 +14,8 @@ type ProductService interface {
 	CreateProduct(ctx context.Context, product *model.Product) error
 	// GetProducts usecase to retrieve all the products
 	GetProducts(ctx context.Context) ([]*model.ProductResponse, error)
+	// GetProductById usecase to retrieve a product by id
+	GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error)
 }
 
 // productService struct that implement the ProductService interface
@@ -49,4 +51,12 @@ func (ps *productService) GetProducts(ctx context.Context) ([]*model.ProductResp
 		pr = append(pr, v.ToProduct().ToProductResponse())
 	}
 	return pr, nil
+}
+
+func (ps *productService) GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error) {
+	product, err := ps.repository.GetById(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed getting: %w", err)
+	}
+	return product.ToProduct().ToProductResponse(), nil
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	e "errors"
 	"log"
 
 	"products-crud/internal/model"
@@ -15,6 +16,8 @@ const (
 	VALUES ($1, $2, $3, $4, $5, $6);`
 	// sqlGetAllProducts query to retrieve the products from the datasource
 	sqlGetAllProducts = `SELECT id, name, supplier_id, category_id, stock, price, discontinued FROM products;`
+	// sqlGetProductById query to retrieve some product by id from the datasource
+	sqlGetProductById = `SELECT id, name, supplier_id, category_id, stock, price, discontinued FROM products WHERE id = $1;`
 )
 
 // ProductRepository persistence contracts for the product entity
@@ -23,6 +26,8 @@ type ProductRepository interface {
 	Save(ctx context.Context, pe *model.ProductEntity) error
 	// GetAll retrieves all the products in the datasource
 	GetAll(ctx context.Context) ([]*model.ProductEntity, error)
+	// GetById retrieves a product by id in the datasource
+	GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error)
 }
 
 // pqProductRepository struct that implement the ProductRepository interface
@@ -79,4 +84,26 @@ func (pr *pqProductRepository) GetAll(ctx context.Context) ([]*model.ProductEnti
 		mp = append(mp, model.NewProductEntity(id, supplierId, categoryId, stock, name, price, discontinued))
 	}
 	return mp, nil
+}
+
+func (pr *pqProductRepository) GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error) {
+	var name string
+	var id, supplierId, categoryId, stock uint
+	var price float64
+	var discontinued bool
+
+	if err := pr.db.QueryRowContext(
+		ctx,
+		sqlGetProductById,
+		productId,
+	).Scan(&id, &name, &supplierId, &categoryId, &stock, &price, &discontinued); err != nil {
+		if e.Is(err, sql.ErrNoRows) {
+			return nil, errors.ErrProductNotFound
+		} else if err != nil {
+			log.Printf("could not retrieve the product: %v", err)
+			return nil, errors.ErrFailedToRetrieveProduct
+		}
+	}
+	product := model.NewProductEntity(id, supplierId, categoryId, stock, name, price, discontinued)
+	return product, nil
 }

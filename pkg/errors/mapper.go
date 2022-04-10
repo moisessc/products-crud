@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"products-crud/pkg/validator"
@@ -12,6 +13,8 @@ import (
 const (
 	// UnmarshallErr identify an unmarshall error type
 	UnmarshallErr ErrorType = "UNMARSHALL_ERROR"
+	// InvalidPathParam identify an path param error type
+	InvalidPathParam ErrorType = "PATH_PARAM_PARSE_ERROR"
 	// ValidationErr identify a validation error type
 	ValidationErr ErrorType = "VALIDATION_ERROR"
 	// DomainErr identify a domain error type
@@ -21,6 +24,8 @@ const (
 	internalServerErrorCode = "INTERNAL_SERVER_ERROR"
 	// invalidRequestCode code to represent an invalid request
 	invalidRequestCode = "INVALID_REQUEST"
+	// notFoundCode code to represent that the resource could not be found
+	notFoundCode = "NOT_FOUND"
 )
 
 // ErrorType type to specify an error type
@@ -33,21 +38,28 @@ type ApiResponse struct {
 }
 
 // MapError transform an error into custom error response
-func MapError(err error, errType ErrorType) *ApiResponse {
+func MapError(err error, errType ErrorType) (*ApiResponse, int) {
 	var msg, code string
+	var statusCode int
 	switch errType {
 	case UnmarshallErr:
 		msg = retrieveUnmarshalErrorMessage(err)
 		code = invalidRequestCode
+		statusCode = http.StatusBadRequest
+	case InvalidPathParam:
+		msg = "invalid id"
+		code = invalidRequestCode
+		statusCode = http.StatusBadRequest
 	case ValidationErr:
 		msg = validator.RetrieveValidationErrorMessage(err)
 		code = invalidRequestCode
+		statusCode = http.StatusBadRequest
 	case DomainErr:
 		msg = err.Error()
-		code = retrieveDomainErrorCode(err)
+		code, statusCode = retrieveDomainErrorCode(err)
 	}
 
-	return &ApiResponse{Message: msg, Code: code}
+	return &ApiResponse{Message: msg, Code: code}, statusCode
 }
 
 // retrieveUnmarshalErrorInformation retrieves the information when the bind method fails
@@ -67,9 +79,11 @@ func retrieveUnmarshalErrorMessage(err error) string {
 }
 
 // retrieveDomainErrorCode retrieves the error code of one domain error
-func retrieveDomainErrorCode(err error) string {
+func retrieveDomainErrorCode(err error) (string, int) {
 	switch {
+	case errors.Is(err, ErrProductNotFound):
+		return notFoundCode, http.StatusNotFound
 	default:
-		return internalServerErrorCode
+		return internalServerErrorCode, http.StatusInternalServerError
 	}
 }
