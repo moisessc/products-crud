@@ -132,3 +132,102 @@ func TestGetProductsService(t *testing.T) {
 		})
 	}
 }
+
+func TestGetProductByIdService(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			err      error
+			products *model.ProductEntity
+		}
+		params struct {
+			ctx       context.Context
+			productId uint64
+		}
+		responseExpected *model.ProductResponse
+		errorExpected    error
+	}{
+		"product_not_found": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductEntity
+			}{
+				err:      errors.ErrProductNotFound,
+				products: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1000,
+			},
+			responseExpected: nil,
+			errorExpected:    fmt.Errorf("failed getting: %w", errors.ErrProductNotFound),
+		},
+		"could_not_get_product_by_id": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductEntity
+			}{
+				err:      errors.ErrFailedToRetrieveProduct,
+				products: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1,
+			},
+			responseExpected: nil,
+			errorExpected:    fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProduct),
+		},
+		"get_product_by_id_success": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductEntity
+			}{
+				err:      nil,
+				products: model.NewProductEntity(1, 1, 1, 23, "Macbook Air 2021", 1300.21, false),
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1,
+			},
+			responseExpected: &model.ProductResponse{
+				Id:           1,
+				Name:         "Macbook Air 2021",
+				SupplierId:   1,
+				CategoryId:   1,
+				Stock:        23,
+				Price:        1300.21,
+				Discontinued: false,
+			},
+			errorExpected: nil,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mockRepository := mocks.ProductRepository{}
+			mockRepository.On(
+				"GetById",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+			).Return(tc.mockReturn.products, tc.mockReturn.err)
+
+			service := NewProductService(&mockRepository)
+			got, err := service.GetProductById(tc.params.ctx, tc.params.productId)
+
+			if tc.errorExpected != nil {
+				assert.EqualError(t, err, tc.errorExpected.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.responseExpected, got)
+			}
+		})
+	}
+}

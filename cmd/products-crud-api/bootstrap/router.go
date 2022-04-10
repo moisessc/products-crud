@@ -30,6 +30,7 @@ func newEchoRouter(ph *controller.ProductsHandler) http.Handler {
 	products := e.Group("/api/v1/products")
 	products.POST("", ph.Create)
 	products.GET("", ph.GetAll)
+	products.GET("/:id", ph.GetById)
 
 	return e
 }

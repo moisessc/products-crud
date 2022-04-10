@@ -37,6 +37,29 @@ func (_m *ProductRepository) GetAll(ctx context.Context) ([]*model.ProductEntity
 	return r0, r1
 }
 
+// GetById provides a mock function with given fields: ctx, productId
+func (_m *ProductRepository) GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error) {
+	ret := _m.Called(ctx, productId)
+
+	var r0 *model.ProductEntity
+	if rf, ok := ret.Get(0).(func(context.Context, uint64) *model.ProductEntity); ok {
+		r0 = rf(ctx, productId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.ProductEntity)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = rf(ctx, productId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Save provides a mock function with given fields: ctx, pe
 func (_m *ProductRepository) Save(ctx context.Context, pe *model.ProductEntity) error {
 	ret := _m.Called(ctx, pe)

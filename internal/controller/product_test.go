@@ -226,3 +226,128 @@ func TestGetProductsController(t *testing.T) {
 		})
 	}
 }
+
+func TestGetProductByIdController(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			err      error
+			products *model.ProductResponse
+		}
+		productId          string
+		bodyExpected       interface{}
+		statusCodeExpected int
+	}{
+		"could_not_get_product_by_invalid_id": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductResponse
+			}{
+				err:      nil,
+				products: nil,
+			},
+			productId: "s",
+			bodyExpected: errors.ApiResponse{
+				Message: "invalid id",
+				Code:    "INVALID_REQUEST",
+			},
+			statusCodeExpected: http.StatusBadRequest,
+		},
+		"product_not_found": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductResponse
+			}{
+				err:      fmt.Errorf("failed getting: %w", errors.ErrProductNotFound),
+				products: nil,
+			},
+			productId: "1000",
+			bodyExpected: errors.ApiResponse{
+				Message: "failed getting: product could not be found",
+				Code:    "NOT_FOUND",
+			},
+			statusCodeExpected: http.StatusNotFound,
+		},
+		"could_not_get_product_by_id": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductResponse
+			}{
+				err:      fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProduct),
+				products: nil,
+			},
+			productId: "1",
+			bodyExpected: errors.ApiResponse{
+				Message: "failed getting: product could not be retrieved",
+				Code:    "INTERNAL_SERVER_ERROR",
+			},
+			statusCodeExpected: http.StatusInternalServerError,
+		},
+		"get_product_by_id_success": {
+			mockReturn: struct {
+				err      error
+				products *model.ProductResponse
+			}{
+				err: nil,
+				products: &model.ProductResponse{
+					Id:           1,
+					Name:         "Macbook 2021",
+					SupplierId:   1,
+					CategoryId:   1,
+					Stock:        12,
+					Price:        2400.32,
+					Discontinued: false,
+				},
+			},
+			productId: "1",
+			bodyExpected: &model.ProductResponse{
+				Id:           1,
+				Name:         "Macbook 2021",
+				SupplierId:   1,
+				CategoryId:   1,
+				Stock:        12,
+				Price:        2400.32,
+				Discontinued: false,
+			},
+			statusCodeExpected: http.StatusOK,
+		},
+	}
+
+	e := echo.New()
+	e.Validator = validator.New(pv.New())
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+			r.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			w := httptest.NewRecorder()
+			ctx := e.NewContext(r, w)
+			ctx.SetParamNames("id")
+			ctx.SetParamValues(tc.productId)
+
+			mockService := mocks.ProductService{}
+			mockService.On(
+				"GetProductById",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+			).Return(tc.mockReturn.products, tc.mockReturn.err)
+
+			handler := NewProductsHandler(&mockService)
+			err := handler.GetById(ctx)
+			assert.NoError(t, err)
+
+			gotStatusCode := w.Code
+			assert.EqualValues(t, tc.statusCodeExpected, gotStatusCode)
+
+			if name != "get_product_by_id_success" {
+				var gotBody errors.ApiResponse
+				err = json.NewDecoder(w.Body).Decode(&gotBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.bodyExpected, gotBody)
+			} else {
+				var gotBody *model.ProductResponse
+				err = json.NewDecoder(w.Body).Decode(&gotBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.bodyExpected, gotBody)
+			}
+		})
+	}
+}
