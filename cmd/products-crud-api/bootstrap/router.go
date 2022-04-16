@@ -31,6 +31,7 @@ func newEchoRouter(ph *controller.ProductsHandler) http.Handler {
 	products.POST("", ph.Create)
 	products.GET("", ph.GetAll)
 	products.GET("/:id", ph.GetById)
+	products.PUT("/:id", ph.UpdateProduct)
 
 	return e
 }

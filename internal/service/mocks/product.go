@@ -73,3 +73,26 @@ func (_m *ProductService) GetProducts(ctx context.Context) ([]*model.ProductResp
 
 	return r0, r1
 }
+
+// UpdateProduct provides a mock function with given fields: ctx, id, product
+func (_m *ProductService) UpdateProduct(ctx context.Context, id uint64, product *model.Product) (*model.ProductResponse, error) {
+	ret := _m.Called(ctx, id, product)
+
+	var r0 *model.ProductResponse
+	if rf, ok := ret.Get(0).(func(context.Context, uint64, *model.Product) *model.ProductResponse); ok {
+		r0 = rf(ctx, id, product)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.ProductResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, uint64, *model.Product) error); ok {
+		r1 = rf(ctx, id, product)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

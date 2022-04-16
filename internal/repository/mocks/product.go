@@ -73,3 +73,26 @@ func (_m *ProductRepository) Save(ctx context.Context, pe *model.ProductEntity) 
 
 	return r0
 }
+
+// Update provides a mock function with given fields: ctx, productId, product
+func (_m *ProductRepository) Update(ctx context.Context, productId uint64, product *model.ProductEntity) (*model.ProductEntity, error) {
+	ret := _m.Called(ctx, productId, product)
+
+	var r0 *model.ProductEntity
+	if rf, ok := ret.Get(0).(func(context.Context, uint64, *model.ProductEntity) *model.ProductEntity); ok {
+		r0 = rf(ctx, productId, product)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.ProductEntity)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, uint64, *model.ProductEntity) error); ok {
+		r1 = rf(ctx, productId, product)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

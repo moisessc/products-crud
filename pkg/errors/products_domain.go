@@ -11,4 +11,8 @@ var (
 	ErrProductNotFound = errors.New("product could not be found")
 	// ErrFailedToRetrieveProduct is returned when some product could not be retrieved in the persistence layer
 	ErrFailedToRetrieveProduct = errors.New("product could not be retrieved")
+	// ErrFailedToUpdateProduct is returned when some product could not be updated in the persistence layer
+	ErrFailedToUpdateProduct = errors.New("product could not be updated")
+	// ErrNothingToUpdate is returned when there is nothing to update in the persistence layer
+	ErrNothingToUpdate = errors.New("the request do not have changes")
 )

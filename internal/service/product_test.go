@@ -231,3 +231,177 @@ func TestGetProductByIdService(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateProductService(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			errFound       error
+			productFound   *model.ProductEntity
+			errUpdated     error
+			productUpdated *model.ProductEntity
+		}
+		params struct {
+			ctx       context.Context
+			productId uint64
+			product   *model.Product
+		}
+		expectedResponse *model.ProductResponse
+		expectedError    error
+	}{
+		"product_not_found": {
+			mockReturn: struct {
+				errFound       error
+				productFound   *model.ProductEntity
+				errUpdated     error
+				productUpdated *model.ProductEntity
+			}{
+				errFound:       fmt.Errorf("failed getting: %w", errors.ErrProductNotFound),
+				productFound:   nil,
+				errUpdated:     nil,
+				productUpdated: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+				product   *model.Product
+			}{
+				ctx:       context.Background(),
+				productId: 1000,
+				product:   model.NewProductWithoutId(1, 1, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			expectedResponse: nil,
+			expectedError:    fmt.Errorf("failed getting: %w", errors.ErrProductNotFound),
+		},
+		"could_not_get_product_by_id": {
+			mockReturn: struct {
+				errFound       error
+				productFound   *model.ProductEntity
+				errUpdated     error
+				productUpdated *model.ProductEntity
+			}{
+				errFound:       fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProduct),
+				productFound:   nil,
+				errUpdated:     nil,
+				productUpdated: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+				product   *model.Product
+			}{
+				ctx:       context.Background(),
+				productId: 10,
+				product:   model.NewProductWithoutId(1, 1, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			expectedResponse: nil,
+			expectedError:    fmt.Errorf("failed getting: %w", errors.ErrFailedToRetrieveProduct),
+		},
+		"nothing_to_update_same_data": {
+			mockReturn: struct {
+				errFound       error
+				productFound   *model.ProductEntity
+				errUpdated     error
+				productUpdated *model.ProductEntity
+			}{
+				errFound:       nil,
+				productFound:   model.NewProductEntity(10, 1, 1, 10, "Macbook Air 2022", 1200.74, false),
+				errUpdated:     nil,
+				productUpdated: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+				product   *model.Product
+			}{
+				ctx:       context.Background(),
+				productId: 10,
+				product:   model.NewProductWithoutId(1, 1, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			expectedResponse: nil,
+			expectedError:    fmt.Errorf("update not necessary: %w", errors.ErrNothingToUpdate),
+		},
+		"could_not_update_product": {
+			mockReturn: struct {
+				errFound       error
+				productFound   *model.ProductEntity
+				errUpdated     error
+				productUpdated *model.ProductEntity
+			}{
+				errFound:       nil,
+				productFound:   model.NewProductEntity(10, 1, 1, 10, "Macbook Air 2022", 1200.74, false),
+				errUpdated:     errors.ErrFailedToUpdateProduct,
+				productUpdated: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+				product   *model.Product
+			}{
+				ctx:       context.Background(),
+				productId: 10,
+				product:   model.NewProductWithoutId(1, 2, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			expectedResponse: nil,
+			expectedError:    fmt.Errorf("update failed: %w", errors.ErrFailedToUpdateProduct),
+		},
+		"update_product_success": {
+			mockReturn: struct {
+				errFound       error
+				productFound   *model.ProductEntity
+				errUpdated     error
+				productUpdated *model.ProductEntity
+			}{
+				errFound:       nil,
+				productFound:   model.NewProductEntity(10, 1, 1, 10, "Macbook Air 2022", 1200.74, false),
+				errUpdated:     nil,
+				productUpdated: model.NewProductEntity(10, 1, 2, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+				product   *model.Product
+			}{
+				ctx:       context.Background(),
+				productId: 10,
+				product:   model.NewProductWithoutId(1, 2, 10, "Macbook Air 2022", 1200.74, false),
+			},
+			expectedResponse: &model.ProductResponse{
+				Id:           10,
+				Name:         "Macbook Air 2022",
+				SupplierId:   1,
+				CategoryId:   2,
+				Stock:        10,
+				Price:        1200.74,
+				Discontinued: false,
+			},
+			expectedError: nil,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mockRepository := mocks.ProductRepository{}
+			mockRepository.On(
+				"GetById",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+			).Return(tc.mockReturn.productFound, tc.mockReturn.errFound)
+			mockRepository.On(
+				"Update",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+				mock.AnythingOfType("*model.ProductEntity"),
+			).Return(tc.mockReturn.productUpdated, tc.mockReturn.errUpdated)
+
+			service := NewProductService(&mockRepository)
+			got, err := service.UpdateProduct(tc.params.ctx, tc.params.productId, tc.params.product)
+
+			if tc.expectedError != nil {
+				assert.EqualError(t, err, tc.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.expectedResponse, got)
+			}
+		})
+	}
+}

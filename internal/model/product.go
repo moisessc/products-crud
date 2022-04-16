@@ -1,5 +1,9 @@
 package model
 
+import (
+	"products-crud/pkg/errors"
+)
+
 // Product struct for the product entity
 type Product struct {
 	id           uint
@@ -101,6 +105,37 @@ func (pe *ProductEntity) ToProduct() *Product {
 		price:        pe.price,
 		discontinued: pe.discontinued,
 	}
+}
+
+// ValidateEntityChanges Check if there is a difference between the request and the entity in the data source
+func (pe *ProductEntity) ValidateEntityChanges(currentProductEntity *ProductEntity) (*ProductEntity, error) {
+	pe.id = currentProductEntity.id
+
+	if pe.name == "" {
+		pe.name = currentProductEntity.name
+	}
+
+	if pe.supplierId == 0 {
+		pe.supplierId = currentProductEntity.supplierId
+	}
+
+	if pe.categoryId == 0 {
+		pe.categoryId = currentProductEntity.categoryId
+	}
+
+	if pe.stock == 0 {
+		pe.stock = currentProductEntity.stock
+	}
+
+	if pe.price == 0 {
+		pe.price = currentProductEntity.price
+	}
+
+	if *pe == *currentProductEntity {
+		return nil, errors.ErrNothingToUpdate
+	}
+
+	return pe, nil
 }
 
 // Id ProductEntity entity id getter

@@ -26,6 +26,16 @@ type ProductRequest struct {
 	Discontinued bool    `json:"discontinued"`
 }
 
+// ProductUpdateRequest struct that represents the product update request
+type ProductUpdateRequest struct {
+	Name         string  `json:"name"`
+	SupplierId   uint    `json:"supplierId"`
+	CategoryId   uint    `json:"categoryId"`
+	Stock        uint    `json:"stock"`
+	Price        float64 `json:"price"`
+	Discontinued bool    `json:"discontinued"`
+}
+
 // NewProductsHandler creates a new pointer of ProductsHandler struct
 func NewProductsHandler(service service.ProductService) *ProductsHandler {
 	return &ProductsHandler{
@@ -82,4 +92,35 @@ func (ph *ProductsHandler) GetById(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, product)
+}
+
+// UpdateProduct invokes the echo handler to update one product by id
+func (ph *ProductsHandler) UpdateProduct(c echo.Context) error {
+	productId, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		errResponse, code := errors.MapError(err, errors.InvalidPathParam)
+		return c.JSON(code, errResponse)
+	}
+
+	var req ProductUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		errResponse, code := errors.MapError(err, errors.UnmarshallErr)
+		return c.JSON(code, errResponse)
+	}
+
+	product := model.NewProductWithoutId(
+		req.SupplierId,
+		req.CategoryId,
+		req.Stock,
+		req.Name,
+		req.Price,
+		req.Discontinued,
+	)
+	productUpdated, err := ph.service.UpdateProduct(c.Request().Context(), productId, product)
+	if err != nil {
+		errResponse, code := errors.MapError(err, errors.DomainErr)
+		return c.JSON(code, errResponse)
+	}
+
+	return c.JSON(http.StatusOK, productUpdated)
 }
