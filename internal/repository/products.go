@@ -21,6 +21,7 @@ const (
 	// sqlUpdateProduct query to update some product by id in the datasource
 	sqlUpdateProduct = `UPDATE products 
 	SET name=$1, supplier_id=$2, category_id=$3, stock=$4, price=$5, discontinued=$6 WHERE id = $7;`
+	sqlDeleteProductById = `DELETE FROM products WHERE id = $1;`
 )
 
 // ProductRepository persistence contracts for the product entity
@@ -33,6 +34,8 @@ type ProductRepository interface {
 	GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error)
 	// Update updates a product by id in the datasource
 	Update(ctx context.Context, productId uint64, product *model.ProductEntity) (*model.ProductEntity, error)
+	// Delete deletes a product by id in the datasource
+	Delete(ctx context.Context, productId uint64) error
 }
 
 // pqProductRepository struct that implement the ProductRepository interface
@@ -139,4 +142,18 @@ func (pr *pqProductRepository) Update(ctx context.Context, productId uint64, pro
 	}
 
 	return product, nil
+}
+
+// Delete implement the interface ProductRepository.Delete
+func (pr *pqProductRepository) Delete(ctx context.Context, productId uint64) error {
+	_, err := pr.GetById(ctx, productId)
+	if err != nil {
+		return err
+	}
+
+	if _, err := pr.db.ExecContext(ctx, sqlDeleteProductById, productId); err != nil {
+		log.Printf("could not delete the product: %v", err)
+		return errors.ErrFailedToDeleteProduct
+	}
+	return nil
 }

@@ -366,7 +366,7 @@ func TestUpdateProductController(t *testing.T) {
 		bodyExpected       interface{}
 		statusCodeExpected int
 	}{
-		"could_not_get_product_by_invalid_id": {
+		"could_not_update_product_by_invalid_id": {
 			mockReturn: struct {
 				err            error
 				productFound   *model.ProductResponse
@@ -441,7 +441,7 @@ func TestUpdateProductController(t *testing.T) {
 			},
 			statusCodeExpected: http.StatusNotFound,
 		},
-		"could_not_get_product_by_id": {
+		"could_not_get_product_to_update": {
 			mockReturn: struct {
 				err            error
 				productFound   *model.ProductResponse
@@ -618,6 +618,114 @@ func TestUpdateProductController(t *testing.T) {
 				assert.EqualValues(t, tc.bodyExpected, gotBody)
 			} else {
 				var gotBody *model.ProductResponse
+				err = json.NewDecoder(w.Body).Decode(&gotBody)
+				assert.NoError(t, err)
+				assert.EqualValues(t, tc.bodyExpected, gotBody)
+			}
+		})
+	}
+}
+
+func TestDeleteProductController(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			err error
+		}
+		productId          string
+		bodyExpected       interface{}
+		statusCodeExpected int
+	}{
+		"could_not_delete_product_by_invalid_id": {
+			mockReturn: struct {
+				err error
+			}{
+				err: nil,
+			},
+			productId: "s",
+			bodyExpected: errors.ApiResponse{
+				Message: "invalid id",
+				Code:    "INVALID_REQUEST",
+			},
+			statusCodeExpected: http.StatusBadRequest,
+		},
+		"product_not_found": {
+			mockReturn: struct {
+				err error
+			}{
+				err: fmt.Errorf("delete failed: %w", errors.ErrProductNotFound),
+			},
+			productId: "1000",
+			bodyExpected: errors.ApiResponse{
+				Message: "delete failed: product could not be found",
+				Code:    "NOT_FOUND",
+			},
+			statusCodeExpected: http.StatusNotFound,
+		},
+		"could_not_get_product_to_delete": {
+			mockReturn: struct {
+				err error
+			}{
+				err: fmt.Errorf("delete failed: %w", errors.ErrFailedToRetrieveProduct),
+			},
+			productId: "1",
+			bodyExpected: errors.ApiResponse{
+				Message: "delete failed: product could not be retrieved",
+				Code:    "INTERNAL_SERVER_ERROR",
+			},
+			statusCodeExpected: http.StatusInternalServerError,
+		},
+		"could_not_delete_product": {
+			mockReturn: struct {
+				err error
+			}{
+				err: fmt.Errorf("delete failed: %w", errors.ErrFailedToDeleteProduct),
+			},
+			productId: "1",
+			bodyExpected: errors.ApiResponse{
+				Message: "delete failed: product could not be deleted",
+				Code:    "INTERNAL_SERVER_ERROR",
+			},
+			statusCodeExpected: http.StatusInternalServerError,
+		},
+		"delete_product_success": {
+			mockReturn: struct {
+				err error
+			}{
+				err: nil,
+			},
+			productId:          "1",
+			bodyExpected:       nil,
+			statusCodeExpected: http.StatusNoContent,
+		},
+	}
+
+	e := echo.New()
+	e.Validator = validator.New(pv.New())
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodDelete, "/", strings.NewReader(""))
+			r.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			w := httptest.NewRecorder()
+			ctx := e.NewContext(r, w)
+			ctx.SetParamNames("id")
+			ctx.SetParamValues(tc.productId)
+
+			mockService := mocks.ProductService{}
+			mockService.On(
+				"DeleteProduct",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+			).Return(tc.mockReturn.err)
+
+			handler := NewProductsHandler(&mockService)
+			err := handler.DeleteById(ctx)
+			assert.NoError(t, err)
+
+			gotStatusCode := w.Code
+			assert.EqualValues(t, tc.statusCodeExpected, gotStatusCode)
+
+			if name != "delete_product_success" {
+				var gotBody errors.ApiResponse
 				err = json.NewDecoder(w.Body).Decode(&gotBody)
 				assert.NoError(t, err)
 				assert.EqualValues(t, tc.bodyExpected, gotBody)

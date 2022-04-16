@@ -18,6 +18,8 @@ type ProductService interface {
 	GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error)
 	// UpdateProduct usecase to update a product by id
 	UpdateProduct(ctx context.Context, id uint64, product *model.Product) (*model.ProductResponse, error)
+	// DeleteProduct usecase to delete a product by id
+	DeleteProduct(ctx context.Context, id uint64) error
 }
 
 // productService struct that implement the ProductService interface
@@ -81,4 +83,12 @@ func (ps *productService) UpdateProduct(ctx context.Context, id uint64, product 
 		return nil, fmt.Errorf("update failed: %w", err)
 	}
 	return p.ToProduct().ToProductResponse(), nil
+}
+
+// DeleteProduct implement the interface ProductService.DeleteProduct
+func (ps *productService) DeleteProduct(ctx context.Context, id uint64) error {
+	if err := ps.repository.Delete(ctx, id); err != nil {
+		return fmt.Errorf("delete failed: %w", err)
+	}
+	return nil
 }
