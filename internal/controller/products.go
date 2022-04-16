@@ -124,3 +124,20 @@ func (ph *ProductsHandler) UpdateProduct(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, productUpdated)
 }
+
+// DeleteById invokes the echo handler to delete one product by id
+func (ph *ProductsHandler) DeleteById(c echo.Context) error {
+	productId, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		errResponse, code := errors.MapError(err, errors.InvalidPathParam)
+		return c.JSON(code, errResponse)
+	}
+
+	err = ph.service.DeleteProduct(c.Request().Context(), productId)
+	if err != nil {
+		errResponse, code := errors.MapError(err, errors.DomainErr)
+		return c.JSON(code, errResponse)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}

@@ -15,4 +15,6 @@ var (
 	ErrFailedToUpdateProduct = errors.New("product could not be updated")
 	// ErrNothingToUpdate is returned when there is nothing to update in the persistence layer
 	ErrNothingToUpdate = errors.New("the request do not have changes")
+	// ErrFailedToDelete is returned when some product could not be deleted in the persistence layer
+	ErrFailedToDeleteProduct = errors.New("product could not be deleted")
 )

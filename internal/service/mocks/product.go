@@ -28,6 +28,20 @@ func (_m *ProductService) CreateProduct(ctx context.Context, product *model.Prod
 	return r0
 }
 
+// DeleteProduct provides a mock function with given fields: ctx, id
+func (_m *ProductService) DeleteProduct(ctx context.Context, id uint64) error {
+	ret := _m.Called(ctx, id)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uint64) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetProductById provides a mock function with given fields: ctx, id
 func (_m *ProductService) GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error) {
 	ret := _m.Called(ctx, id)

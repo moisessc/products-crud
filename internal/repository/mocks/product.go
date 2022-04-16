@@ -14,6 +14,20 @@ type ProductRepository struct {
 	mock.Mock
 }
 
+// Delete provides a mock function with given fields: ctx, productId
+func (_m *ProductRepository) Delete(ctx context.Context, productId uint64) error {
+	ret := _m.Called(ctx, productId)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uint64) error); ok {
+		r0 = rf(ctx, productId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetAll provides a mock function with given fields: ctx
 func (_m *ProductRepository) GetAll(ctx context.Context) ([]*model.ProductEntity, error) {
 	ret := _m.Called(ctx)
