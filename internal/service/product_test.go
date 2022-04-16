@@ -405,3 +405,97 @@ func TestUpdateProductService(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteProductService(t *testing.T) {
+	testCases := map[string]struct {
+		mockReturn struct {
+			err error
+		}
+		params struct {
+			ctx       context.Context
+			productId uint64
+		}
+		errorExpected error
+	}{
+		"product_not_found": {
+			mockReturn: struct {
+				err error
+			}{
+				err: errors.ErrProductNotFound,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1000,
+			},
+			errorExpected: fmt.Errorf("delete failed: %w", errors.ErrProductNotFound),
+		},
+		"could_not_get_product_to_delete": {
+			mockReturn: struct {
+				err error
+			}{
+				err: errors.ErrFailedToRetrieveProduct,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1000,
+			},
+			errorExpected: fmt.Errorf("delete failed: %w", errors.ErrFailedToRetrieveProduct),
+		},
+		"could_not_delete_product": {
+			mockReturn: struct {
+				err error
+			}{
+				err: errors.ErrFailedToDeleteProduct,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1,
+			},
+			errorExpected: fmt.Errorf("delete failed: %w", errors.ErrFailedToDeleteProduct),
+		},
+		"delete_product_success": {
+			mockReturn: struct {
+				err error
+			}{
+				err: nil,
+			},
+			params: struct {
+				ctx       context.Context
+				productId uint64
+			}{
+				ctx:       context.Background(),
+				productId: 1000,
+			},
+			errorExpected: nil,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			mockRepository := mocks.ProductRepository{}
+			mockRepository.On(
+				"Delete",
+				mock.AnythingOfType("*context.emptyCtx"),
+				mock.AnythingOfType("uint64"),
+			).Return(tc.mockReturn.err)
+
+			service := NewProductService(&mockRepository)
+			err := service.DeleteProduct(tc.params.ctx, tc.params.productId)
+
+			if tc.errorExpected != nil {
+				assert.EqualError(t, err, tc.errorExpected.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
