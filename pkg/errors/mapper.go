@@ -26,6 +26,8 @@ const (
 	invalidRequestCode = "INVALID_REQUEST"
 	// notFoundCode code to represent that the resource could not be found
 	notFoundCode = "NOT_FOUND"
+	// nothingToUpdate code to represent that there is nothing to update
+	nothingToUpdate = "NOTHING_TO_UPDATE"
 )
 
 // ErrorType type to specify an error type
@@ -83,6 +85,8 @@ func retrieveDomainErrorCode(err error) (string, int) {
 	switch {
 	case errors.Is(err, ErrProductNotFound):
 		return notFoundCode, http.StatusNotFound
+	case errors.Is(err, ErrNothingToUpdate):
+		return nothingToUpdate, http.StatusBadRequest
 	default:
 		return internalServerErrorCode, http.StatusInternalServerError
 	}

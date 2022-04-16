@@ -18,6 +18,9 @@ const (
 	sqlGetAllProducts = `SELECT id, name, supplier_id, category_id, stock, price, discontinued FROM products;`
 	// sqlGetProductById query to retrieve some product by id from the datasource
 	sqlGetProductById = `SELECT id, name, supplier_id, category_id, stock, price, discontinued FROM products WHERE id = $1;`
+	// sqlUpdateProduct query to update some product by id in the datasource
+	sqlUpdateProduct = `UPDATE products 
+	SET name=$1, supplier_id=$2, category_id=$3, stock=$4, price=$5, discontinued=$6 WHERE id = $7;`
 )
 
 // ProductRepository persistence contracts for the product entity
@@ -28,6 +31,8 @@ type ProductRepository interface {
 	GetAll(ctx context.Context) ([]*model.ProductEntity, error)
 	// GetById retrieves a product by id in the datasource
 	GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error)
+	// Update updates a product by id in the datasource
+	Update(ctx context.Context, productId uint64, product *model.ProductEntity) (*model.ProductEntity, error)
 }
 
 // pqProductRepository struct that implement the ProductRepository interface
@@ -54,7 +59,7 @@ func (pr *pqProductRepository) Save(ctx context.Context, pe *model.ProductEntity
 	_, err = stmt.ExecContext(
 		ctx, pe.Name(), pe.SupplierId(), pe.CategoryId(), pe.Stock(), pe.Price(), pe.Discontinued())
 	if err != nil {
-		log.Printf("could not insert products: %v", err)
+		log.Printf("could not insert the product: %v", err)
 		return errors.ErrFailedToSaveProduct
 	}
 
@@ -66,7 +71,7 @@ func (pr *pqProductRepository) GetAll(ctx context.Context) ([]*model.ProductEnti
 	mp := make([]*model.ProductEntity, 0)
 	rows, err := pr.db.QueryContext(ctx, sqlGetAllProducts)
 	if err != nil {
-		log.Printf("could not retrieve products: %v", err)
+		log.Printf("could not retrieve the product: %v", err)
 		return nil, errors.ErrFailedToRetrieveProducts
 	}
 	defer rows.Close()
@@ -78,7 +83,7 @@ func (pr *pqProductRepository) GetAll(ctx context.Context) ([]*model.ProductEnti
 		var discontinued bool
 		err := rows.Scan(&id, &name, &supplierId, &categoryId, &stock, &price, &discontinued)
 		if err != nil {
-			log.Printf("could not be scan a product: %v", err)
+			log.Printf("could not be scan the product: %v", err)
 			return nil, errors.ErrFailedToRetrieveProducts
 		}
 		mp = append(mp, model.NewProductEntity(id, supplierId, categoryId, stock, name, price, discontinued))
@@ -86,6 +91,7 @@ func (pr *pqProductRepository) GetAll(ctx context.Context) ([]*model.ProductEnti
 	return mp, nil
 }
 
+// GetById implement the interface ProductRepository.GetById
 func (pr *pqProductRepository) GetById(ctx context.Context, productId uint64) (*model.ProductEntity, error) {
 	var name string
 	var id, supplierId, categoryId, stock uint
@@ -105,5 +111,32 @@ func (pr *pqProductRepository) GetById(ctx context.Context, productId uint64) (*
 		}
 	}
 	product := model.NewProductEntity(id, supplierId, categoryId, stock, name, price, discontinued)
+	return product, nil
+}
+
+// Update implement the interface ProductRepository.Update
+func (pr *pqProductRepository) Update(ctx context.Context, productId uint64, product *model.ProductEntity) (*model.ProductEntity, error) {
+	stmt, err := pr.db.Prepare(sqlUpdateProduct)
+	if err != nil {
+		log.Printf("could not prepare the statement: %v", err)
+		return nil, errors.ErrFailedToUpdateProduct
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(
+		ctx,
+		product.Name(),
+		product.SupplierId(),
+		product.CategoryId(),
+		product.Stock(),
+		product.Price(),
+		product.Discontinued(),
+		productId,
+	)
+	if err != nil {
+		log.Printf("could not update the product: %v", err)
+		return nil, errors.ErrFailedToUpdateProduct
+	}
+
 	return product, nil
 }

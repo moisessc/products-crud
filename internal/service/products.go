@@ -16,6 +16,8 @@ type ProductService interface {
 	GetProducts(ctx context.Context) ([]*model.ProductResponse, error)
 	// GetProductById usecase to retrieve a product by id
 	GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error)
+	// UpdateProduct usecase to update a product by id
+	UpdateProduct(ctx context.Context, id uint64, product *model.Product) (*model.ProductResponse, error)
 }
 
 // productService struct that implement the ProductService interface
@@ -53,10 +55,30 @@ func (ps *productService) GetProducts(ctx context.Context) ([]*model.ProductResp
 	return pr, nil
 }
 
+// GetProductById implement the interface ProductService.GetProductById
 func (ps *productService) GetProductById(ctx context.Context, id uint64) (*model.ProductResponse, error) {
 	product, err := ps.repository.GetById(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed getting: %w", err)
 	}
 	return product.ToProduct().ToProductResponse(), nil
+}
+
+// UpdateProduct implement the interface ProductService.UpdateProduct
+func (ps *productService) UpdateProduct(ctx context.Context, id uint64, product *model.Product) (*model.ProductResponse, error) {
+	currentProduct, err := ps.repository.GetById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	pe, err := product.ToProductEntity().ValidateEntityChanges(currentProduct)
+	if err != nil {
+		return nil, fmt.Errorf("update not necessary: %w", err)
+	}
+
+	p, err := ps.repository.Update(ctx, id, pe)
+	if err != nil {
+		return nil, fmt.Errorf("update failed: %w", err)
+	}
+	return p.ToProduct().ToProductResponse(), nil
 }
